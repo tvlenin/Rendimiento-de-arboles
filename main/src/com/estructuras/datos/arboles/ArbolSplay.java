@@ -1,232 +1,215 @@
  package com.estructuras.datos.arboles;
- 
- public class ArbolSplay<E extends Comparable>{
-     
+ /**
+ * Implements a top-down splay tree.
+ * Available at http://www.link.cs.cmu.edu/splay/
+ * Author: Danny Sleator <sleator@cs.cmu.edu>
+ * This code is in the public domain.
+ */
+
+
+
+public class ArbolSplay{
+    
     private NodoSplay root;
-    private int count = 0;
 
-    public ArbolSplay(){}
-
-    public boolean isEmpty(){
-        return root == null;
+    public NodoSplay getRaiz(){
+        return this.root;
     }
-
-    public void clear(){
+    
+    public ArbolSplay() {
         root = null;
     }
 
-
-    public void insert(E ele){
-        NodoSplay z = root;
-        NodoSplay p = null;
-        while (z != null){
-            p = z;
-            if (ele.compareTo(p.getData()) < 0)
-                z = z.getHijoDerecho();
-            else
-                z = z.getHijoIzquierdo();
-        }
-        z = new NodoSplay(ele);
-        z.padre = p;
-        if (p == null)
-            root = z;
-        else if (ele.compareTo(p.getData()) < 0)
-            p.hijoDerecho = z;
-        else
-            p.hijoIzquierdo = z;
-        Splay(z);
-        count++;
+    /**
+     * Insert into the tree.
+     * @param x the item to insert.
+     * @throws DuplicateItemException if x is already present.
+     */
+    public void insert(Comparable key) {
+	NodoSplay n;
+	int c;
+	if (root == null) {
+	    root = new NodoSplay(key);
+	    return;
+	}
+	splay(key);
+	if ((c = key.compareTo(root.data)) == 0) {
+	    //	    throw new DuplicateItemException(x.toString());	    
+	    return;
+	}
+	n = new NodoSplay(key);
+	if (c < 0) {
+	    n.left = root.left;
+	    n.right = root;
+	    root.left = null;
+	} else {
+	    n.right = root.right;
+	    n.left = root;
+	    root.right = null;
+	}
+	root = n;
     }
 
-    public void makeLeftChildParent(NodoSplay c, NodoSplay p){
-        if ((c == null) || (p == null) || (p.hijoIzquierdo != c) || (c.padre != p))
-            throw new RuntimeException("WRONG");
-
-        if (p.padre != null){
-            if (p == p.padre.getHijoIzquierdo())
-                p.padre.hijoIzquierdo = c;
-            else 
-                p.padre.hijoDerecho = c;
-        }
-        if (c.getHijoDerecho() != null)
-            c.hijoDerecho.padre = p;
-
-        c.padre = p.getPadre();
-        p.padre = c;
-        p.hijoIzquierdo = c.hijoDerecho;
-        c.hijoDerecho = p;
+    /**
+     * Remove from the tree.
+     * @param x the item to borrar.
+     * @throws ItemNotFoundException if x is not found.
+     */
+    public void borrar(Comparable key) {
+	NodoSplay x;
+	splay(key);
+	if (key.compareTo(root.data) != 0) {
+	    //            throw new ItemNotFoundException(x.toString());
+	    return;
+	}
+	// Now delete the root
+	if (root.left == null) {
+	    root = root.right;
+	} else {
+	    x = root.right;
+	    root = root.left;
+	    splay(key);
+	    root.right = x;
+	}
     }
 
-    public void makeRightChildParent(NodoSplay<E> c, NodoSplay<E> p){
-        if ((c == null) || (p == null) || (p.hijoDerecho != c) || (c.padre != p))
-            throw new RuntimeException("WRONG");
-        if (p.padre != null){
-            if (p == p.padre.hijoIzquierdo)
-                p.padre.hijoIzquierdo = c;
-            else
-                p.padre.hijoDerecho = c;
-        }
-        if (c.hijoIzquierdo != null)
-            c.hijoIzquierdo.padre = p;
-        c.padre = p.padre;
-        p.padre = c;
-        p.hijoDerecho = c.hijoIzquierdo;
-        c.hijoIzquierdo = p;
+    /**
+     * Find the smallest item in the tree.
+     */
+    public Comparable findMin() {
+        NodoSplay x = root;
+        if(root == null) return null;
+        while(x.left != null) x = x.left;
+        splay(x.data);
+        return x.data;
     }
 
-    /** function splay **/
-    private void Splay(NodoSplay x)
-    {
-        while (x.padre != null)
-        {
-            NodoSplay Parent = x.padre;
-            NodoSplay GrandParent = Parent.padre;
-            if (GrandParent == null)
-            {
-                if (x == Parent.hijoIzquierdo)
-                    makeLeftChildParent(x, Parent);
-                else
-                    makeRightChildParent(x, Parent);                 
-            } 
-            else
-            {
-                if (x == Parent.hijoIzquierdo)
-                {
-                    if (Parent == GrandParent.hijoIzquierdo)
-                    {
-                        makeLeftChildParent(Parent, GrandParent);
-                        makeLeftChildParent(x, Parent);
-                    }
-                    else 
-                    {
-                        makeLeftChildParent(x, x.padre);
-                        makeRightChildParent(x, x.padre);
-                    }
-                }
-                else 
-                {
-                    if (Parent == GrandParent.hijoIzquierdo)
-                    {
-                        makeRightChildParent(x, x.padre);
-                        makeLeftChildParent(x, x.padre);
-                    } 
-                    else 
-                    {
-                        makeRightChildParent(Parent, GrandParent);
-                        makeRightChildParent(x, Parent);
-                    }
-                }
-            }
-        }
-        root = x;
+    /**
+     * Find the largest item in the tree.
+     */
+    public Comparable findMax() {
+        NodoSplay x = root;
+        if(root == null) return null;
+        while(x.right != null) x = x.right;
+        splay(x.data);
+        return x.data;
     }
 
-    /** function to remove data **/
-    public void remove(E ele)
-    {
-        NodoSplay node = findNode(ele);
-       remove(node);
+    /**
+     * Find an item in the tree.
+     */
+    public Comparable buscar(Comparable key) {
+	if (root == null) return null;
+	splay(key);
+        if(root.data.compareTo(key) != 0) return null;
+        return root.data;
     }
 
-    /** function to remove node **/
-    private void remove(NodoSplay node)
-    {
-        if (node == null)
-            return;
-
-        Splay(node);
-        if( (node.hijoIzquierdo != null) && (node.hijoDerecho !=null))
-        { 
-            NodoSplay min = node.hijoIzquierdo;
-            while(min.hijoDerecho!=null)
-                min = min.hijoDerecho;
-
-            min.hijoDerecho = node.hijoDerecho;
-            node.hijoDerecho.padre = min;
-            node.hijoIzquierdo.padre = null;
-            root = node.hijoIzquierdo;
-        }
-        else if (node.hijoDerecho != null)
-        {
-            node.hijoDerecho.padre = null;
-            root = node.hijoDerecho;
-        } 
-        else if( node.hijoIzquierdo !=null)
-        {
-            node.hijoIzquierdo.padre = null;
-            root = node.hijoIzquierdo;
-        }
-        else
-        {
-            root = null;
-        }
-        node.padre = null;
-        node.hijoIzquierdo = null;
-        node.hijoDerecho = null;
-        node = null;
-        count--;
+    /**
+     * Test if the tree is logically empty.
+     * @return true if empty, false otherwise.
+     */
+    public boolean isEmpty() {
+        return root == null;
     }
 
-    /** Functions to count number of nodes **/
-    public int countNodes(){
-        return count;
+    /** this method just illustrates the top-down method of
+     * implementing the move-to-root operation 
+     */
+    private void moveToRoot(Comparable key) {
+	NodoSplay l, r, t, y;
+	l = r = header;
+	t = root;
+	header.left = header.right = null;
+	for (;;) {
+	    if (key.compareTo(t.data) < 0) {
+		if (t.left == null) break;
+		r.left = t;                                 /* link right */
+		r = t;
+		t = t.left;
+	    } else if (key.compareTo(t.data) > 0) {
+		if (t.right == null) break;
+		l.right = t;                                /* link left */
+		l = t;
+		t = t.right;
+	    } else {
+		break;
+	    }
+	}
+	l.right = t.left;                                   /* assemble */
+	r.left = t.right;
+	t.left = header.right;
+	t.right = header.left;
+	root = t;
     }
 
-    /** Functions to search for an data **/
-    public boolean search(E val){
-        return findNode(val) != null;
-    }
+    private static NodoSplay header = new NodoSplay(null);     
+    /**
+     * Internal method to perform a top-down splay.
+     * 
+     *   splay(key) does the splay operation on the given key.
+   If key is in the tree, then the NodoSplay containing
+   that key becomes the root.  If key is not in the tree,
+   then after the splay, key.root is either the greatest key
+   < key in the tree, or the lest key > key in the tree.
+     *
+     *   This means, among other things, that if you splay with
+     *   a key that's larger than any in the tree, the rightmost
+     *   node of the tree becomes the root.  This property is used
+     *   in the delete() method.
+     */
 
-    private NodoSplay findNode(E ele){
-        NodoSplay z = root;
-        while (z != null)
-        {
-            if (ele.compareTo(z.getData()) < 0)
-                z = z.hijoDerecho;
-            else if (ele.compareTo(z.getData()) > 0)
-                z = z.hijoIzquierdo;
-            else
-                return z;
-        }
-        return null;
-    }
+    /**
+     * Internal method to perform a top-down splay.splay(data) does the splay operation on the given data.
+   If data is in the tree, then the NodoSplay containing
+   that data becomes the root.  If data is not in the tree,
+   then after the splay, data.root is either the greatest data
+   < data in the tree, or the lest data > data in the tree.
 
-    /** Function for inorder traversal **/ 
-    public void inorder(){
-        inorder(root);
+   This means, among other things, that if you splay with
+   a data that's larger than any in the tree, the rightmost
+   node of the tree becomes the root.  This property is used
+   in the delete() method.
+     */
+    private void splay(Comparable key) {
+        NodoSplay l;
+	NodoSplay r, t, y;
+	l = r = header;
+	t = root;
+	header.left = header.right = null;
+	for (;;) {
+	    if (key.compareTo(t.data) < 0) {
+		if (t.left == null) break;
+		if (key.compareTo(t.left.data) < 0) {
+		    y = t.left;                            /* rotate right */
+		    t.left = y.right;
+		    y.right = t;
+		    t = y;
+		    if (t.left == null) break;
+		}
+		r.left = t;                                 /* link right */
+		r = t;
+		t = t.left;
+	    } else if (key.compareTo(t.data) > 0) {
+		if (t.right == null) break;
+		if (key.compareTo(t.right.data) > 0) {
+		    y = t.right;                            /* rotate left */
+		    t.right = y.left;
+		    y.left = t;
+		    t = y;
+		    if (t.right == null) break;
+		}
+		l.right = t;                                /* link left */
+		l = t;
+		t = t.right;
+	    } else {
+		break;
+	    }
+	}
+	l.right = t.left;                                   /* assemble */
+	r.left = t.right;
+	t.left = header.right;
+	t.right = header.left;
+	root = t;
     }
-
-    private void inorder(NodoSplay r){
-        if (r != null){
-            inorder(r.hijoIzquierdo);
-            System.out.print(r.data +" ");
-            inorder(r.hijoDerecho);
-        }
-    }
-
-    /** Function for preorder traversal **/
-    public void preorder(){
-        preorder(root);
-    }
-
-    private void preorder(NodoSplay r){
-        if (r != null){
-            System.out.print(r.data +" ");
-            preorder(r.hijoIzquierdo);             
-            preorder(r.hijoDerecho);
-        }
-    }
-
-    /** Function for postorder traversal **/
-    public void postorder(){
-        postorder(root);
-    }
-    private void postorder(NodoSplay r){
-        if (r != null){
-            postorder(r.hijoIzquierdo);             
-            postorder(r.hijoDerecho);
-            System.out.print(r.data +" ");
-        }
-    }
- }
- 
+}
